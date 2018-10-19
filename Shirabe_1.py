@@ -178,21 +178,44 @@ analysis = response.json()
 
 #画像中に含まれる単語を全てlstに保存する．
 lst = []
+region = []
 for line in analysis["regions"][0]['lines']:
     for word in line["words"]:
         lst.append(word["text"])
+        region.append(word["boundingBox"])
+        
+#単語のx座標を保存する．
+x_region = []
+for i in region:
+    x_region.append(int(i.split(',')[0]))
 
-lst = list(map(lambda x : x.lower(), lst))
+target_x = 10000
+target_idx = 0    
+for n, i in enumerate(x_region):
+    if i >= 40:
+        num = min(abs(target_x - 50),abs(i - 50))
+        if num == abs(i-50):
+            target_x = i
+            target_idx = n
+    else:
+        pass
+
+lst = lst[target_idx]
 
 
-#冠詞，人称代名詞，不定詞および，一文字の場合はリストから削除する．
-del_str = "a the an i my me mine you your yours he his him she her hers "+\
-"they their them theirs it its we our us ours to"
-del_lst = del_str.split(" ")
-
-
-lst = list(filter(lambda x: len(x) != 1, lst))
-lst = list(filter(lambda x: x not in del_lst, lst))
+# 翻訳する単語を一文字に絞れなかった場合は以下の処理を実行
+if type(lst) == 'list': 
+    lst = list(map(lambda x : x.lower(), lst))
+    
+    
+    #冠詞，人称代名詞，不定詞および，一文字の場合はリストから削除する．
+    del_str = "a the an i my me mine you your yours he his him she her hers "+\
+    "they their them theirs it its we our us ours to"
+    del_lst = del_str.split(" ")
+    
+    
+    lst = list(filter(lambda x: len(x) != 1, lst))
+    lst = list(filter(lambda x: x not in del_lst, lst))
 
 
 #Azureに投げた画像を表示
@@ -204,22 +227,33 @@ translator = Translator()
 
 #翻訳した順番をkeyにして単語と意味を格納
 result_dict = {}
-for num, i in enumerate(lst):
-    meaning = translator.translate(text=i, dest='ja').text
-    result_dict[num] = {"en" : i, "ja" : meaning}
-    print(i)
+if type(lst) == 'list':
+    for num, i in enumerate(lst):
+        meaning = translator.translate(text=i, dest='ja').text
+        result_dict[num] = {"en" : i, "ja" : meaning}
+        print(i)
+        print(meaning)
+        print('\n')
+
+else:
+    meaning = translator.translate(text=lst, dest='ja').text
+    result_dict[0] = {"en" : lst, "ja" : meaning}
+    print(lst)
     print(meaning)
     print('\n')
-
 
 
 # -------------- 調べた単語の発音をwavファイルで"en_sound"ディレクトリに保存する．
 #en_soundが存在するば削除する.
 os.system('rm -rf en_sound')
 os.system('mkdir en_sound')
-for num, i in enumerate(lst):
-    file_name = 'en_sound/en_{}.wav'.format(num)
-    os.system('espeak ' + i + ' -w ' + file_name)
+if type(lst) == 'list':
+    for num, i in enumerate(lst):
+        file_name = 'en_sound/en_{}.wav'.format(num)
+        os.system('espeak ' + i + ' -w ' + file_name)
+else:
+    file_name = 'en_sound/en_0.wav'
+    os.system('espeak ' + lst + ' -w ' + file_name)
 
 
 
@@ -245,11 +279,11 @@ def jtalk(t, num):
     c.stdin.close()
     c.wait()
     # 音声を再生する場合
-    aplay = ['afplay', 'ja_sound/ja_{}.wav'.format(num)]
-    wr = subprocess.Popen(aplay)
+    #aplay = ['afplay', 'ja_sound/ja_{}.wav'.format(num)]
+    #wr = subprocess.Popen(aplay)
 
 os.system('rm -rf ja_sound')
 os.system('mkdir ja_sound')
 for num in result_dict.keys():
     jtalk(result_dict[num]['ja'].encode('utf-8'), num)
-    sleep(1)
+    #sleep(1)
