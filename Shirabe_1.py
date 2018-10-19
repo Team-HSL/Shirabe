@@ -71,7 +71,11 @@ thresh = cv2.threshold(finger_clean, 45, 255, cv2.THRESH_BINARY)[1]
 # 指の輪郭を検出，finger_contoursに輪郭の座標が格納される
 contour_img, finger_contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-cnts = finger_contours[0] if imutils.is_cv2() else finger_contours[1]
+try :
+    cnts = finger_contours[0] if imutils.is_cv2() else finger_contours[1]
+except:
+    cnts = finger_contours[0] #if imutils.is_cv2() else finger_contours[1]
+#cnts = finger_contours[0] #if imutils.is_cv2() else finger_contours[1]
 c = max(cnts, key=cv2.contourArea)
 
 
@@ -167,6 +171,7 @@ response.raise_for_status()
 
 #analysisに画像解析結果のjsonファイルを格納
 analysis = response.json()
+
 
 #------------------- 結果の表示 -----------------------------------
 #print(analysis)
